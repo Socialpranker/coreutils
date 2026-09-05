@@ -23,7 +23,7 @@ use uucore::i18n::collator::{
     AlternateHandling, CollatorOptions, locale_cmp, should_use_locale_collation, try_init_collator,
 };
 use uucore::line_ending::LineEnding;
-use uucore::{format_usage, show_error, translate};
+use uucore::{format_usage, show_error, translate, translate_text};
 
 #[derive(Debug, Error)]
 enum JoinError {
@@ -734,7 +734,11 @@ fn parse_separator(value_os: &OsString) -> UResult<SepSetting> {
         Some('0') if c == '\\' => Ok(SepSetting::Byte(0)),
         _ => Err(USimpleError::new(
             1,
-            translate!("join-error-multi-character-tab", "value" => value),
+            // `value` is the rejected `-t` separator echoed back verbatim (GNU join
+            // does the same): it must not be reinterpreted as a number by `translate!`,
+            // which would reformat it via Fluent's numeric formatting (e.g. "1.50" ->
+            // "1.5").
+            translate_text!("join-error-multi-character-tab", "value" => value),
         )),
     }
 }

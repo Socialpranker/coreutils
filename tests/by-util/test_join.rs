@@ -249,6 +249,20 @@ fn tab_hyphen_leading_as_separate_arg() {
 }
 
 #[test]
+fn tab_multi_character_echoes_verbatim() {
+    // The rejected `-t` separator is echoed back in the error message. It
+    // must never be reinterpreted/reformatted as a number, even though it
+    // looks like one (GNU join echoes it verbatim too).
+    new_ucmd!()
+        .arg("semicolon_fields_1.txt")
+        .arg("semicolon_fields_2.txt")
+        .arg("-t")
+        .arg("1.50")
+        .fails()
+        .stderr_is("join: multi-character tab '1.50'\n");
+}
+
+#[test]
 fn default_format() {
     new_ucmd!()
         .arg("fields_1.txt")
