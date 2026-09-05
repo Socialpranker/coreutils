@@ -337,6 +337,10 @@ fn timeout(
                     })
                     .unwrap_or_else(|| ExitStatus::CommandTimedOut.into());
                 Err(exit_code.into())
+            } else if signal == signal_by_name_or_value("KILL").unwrap() {
+                // Timing out with KILL reports 128 + 9, not 124, the same way
+                // the `--kill-after` escalation in `wait_or_kill_process` does.
+                Err(ExitStatus::SignalSent(signal).into())
             } else {
                 Err(ExitStatus::CommandTimedOut.into())
             }

@@ -130,6 +130,36 @@ fn test_kill_after_preserves_timeout_exit_without_preserve_status() {
         .fails_with_code(124)
         .no_output();
 }
+/// A timeout that sends KILL exits with 128 + 9, not 124, whether or not the
+/// child was put in its own process group.
+#[test]
+fn test_kill_signal_on_timeout_exits_137() {
+    let (ts, bin) = scenario_with_bin();
+    ts.ucmd()
+        .args(&["-s", "KILL", ".1", &bin, "sleep", "10"])
+        .fails_with_code(128 + 9)
+        .no_output();
+    ts.ucmd()
+        .args(&["--foreground", "-s", "KILL", ".1", &bin, "sleep", "10"])
+        .fails_with_code(128 + 9)
+        .no_output();
+    ts.ucmd()
+        .args(&["-s", "9", ".1", &bin, "sleep", "10"])
+        .fails_with_code(128 + 9)
+        .no_output();
+}
+
+/// KILL as the timeout signal does not change the status of a child that
+/// finishes in time.
+#[test]
+fn test_kill_signal_child_exits_in_time() {
+    let (ts, bin) = scenario_with_bin();
+    ts.ucmd()
+        .args(&["-s", "KILL", "1", &bin, "true"])
+        .succeeds()
+        .no_output();
+}
+
 #[test]
 fn test_preserve_status_even_when_send_signal() {
     let (ts, bin) = scenario_with_bin();
