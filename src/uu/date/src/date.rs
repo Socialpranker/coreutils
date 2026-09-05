@@ -26,6 +26,7 @@ use uucore::error::{UError, UResult, USimpleError, strip_errno};
 #[cfg(feature = "i18n-datetime")]
 use uucore::i18n::datetime::{localize_format_string, should_use_icu_locale};
 use uucore::translate;
+use uucore::translate_text;
 use uucore::{format_usage, show};
 #[cfg(windows)]
 use windows_sys::Win32::{Foundation::SYSTEMTIME, System::SystemInformation::SetSystemTime};
@@ -381,7 +382,11 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             Ok(ParsedDateTime::Extended(_)) | Err(_) => {
                 return Err(USimpleError::new(
                     1,
-                    translate!("date-error-invalid-date", "date" => input),
+                    // `input` is the rejected date string echoed back verbatim (GNU date
+                    // does the same): it must not be reinterpreted as a number by
+                    // `translate!`, which would reformat it via Fluent's numeric
+                    // formatting (e.g. "1.50" -> "1.5", "1e5" -> "100000").
+                    translate_text!("date-error-invalid-date", "date" => input),
                 ));
             }
         },
@@ -616,7 +621,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 let _ = stdout.flush();
                 show!(USimpleError::new(
                     1,
-                    translate!("date-error-invalid-date", "date" => input)
+                    // See the comment on the other "date-error-invalid-date" call above.
+                    translate_text!("date-error-invalid-date", "date" => input)
                 ));
             }
         }

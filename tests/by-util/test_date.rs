@@ -531,6 +531,19 @@ fn test_date_set_invalid() {
 }
 
 #[test]
+#[cfg(any(windows, all(unix, not(target_vendor = "apple"))))]
+fn test_date_set_invalid_echoes_verbatim() {
+    // Same as test_invalid_date_string_echoes_verbatim, but for the --set
+    // parsing path, which uses a separate translate! call site.
+    new_ucmd!()
+        .arg("--set")
+        .arg("1.50")
+        .fails()
+        .no_stdout()
+        .stderr_only("date: invalid date '1.50'\n");
+}
+
+#[test]
 #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "android"))))]
 fn test_date_set_permissions_error() {
     if !(geteuid().is_root() || uucore::os::is_wsl_1()) {
@@ -852,6 +865,26 @@ fn test_invalid_date_string() {
         .fails()
         .no_stdout()
         .stderr_contains("invalid date");
+}
+
+#[test]
+fn test_invalid_date_string_echoes_verbatim() {
+    // The rejected date string is echoed back in the error message. It must
+    // never be reinterpreted/reformatted as a number, even though it looks
+    // like one (GNU date echoes it verbatim too).
+    new_ucmd!()
+        .arg("-d")
+        .arg("1.50")
+        .fails()
+        .no_stdout()
+        .stderr_only("date: invalid date '1.50'\n");
+
+    new_ucmd!()
+        .arg("-d")
+        .arg("1e5")
+        .fails()
+        .no_stdout()
+        .stderr_only("date: invalid date '1e5'\n");
 }
 
 #[test]
