@@ -1295,6 +1295,27 @@ fn test_format_with_invalid_precision() {
 }
 
 #[test]
+fn test_format_error_echoes_numeric_looking_format_verbatim() {
+    // A `--format` value that looks like a number must still be echoed back
+    // verbatim in the error message, not reinterpreted/reformatted as a
+    // number (GNU numfmt echoes it verbatim too).
+    new_ucmd!()
+        .arg("--format=1.50")
+        .fails_with_code(1)
+        .stderr_only("numfmt: format '1.50' has no % directive\n");
+
+    new_ucmd!()
+        .arg("--format=1.50%")
+        .fails_with_code(1)
+        .stderr_only("numfmt: format '1.50%' ends in %\n");
+
+    new_ucmd!()
+        .arg("--format=%1.50s")
+        .fails_with_code(1)
+        .stderr_only("numfmt: invalid format '%1.50s', directive must be %[0]['][-][N][.][N]f\n");
+}
+
+#[test]
 fn test_format_grouping_conflicts_with_to_option() {
     new_ucmd!()
         .args(&["--format=%'f", "--to=si"])

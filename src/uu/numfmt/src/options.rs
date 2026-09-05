@@ -11,6 +11,7 @@ use std::str::{CharIndices, FromStr};
 use crate::units::Unit;
 use uucore::ranges::Range;
 use uucore::translate;
+use uucore::translate_text;
 
 /// Byte offset the parser stopped at, the end of input when nothing is left.
 fn offset(iter: &mut Peekable<CharIndices<'_>>, s: &str) -> usize {
@@ -220,6 +221,12 @@ impl FromStr for FormatOptions {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // Byte offsets are tracked alongside the characters so that a failure
         // can say where in the format it gave up.
+        //
+        // `s` is the raw `--format` argument echoed back verbatim in error
+        // messages below (GNU numfmt does the same): it must not be
+        // reinterpreted as a number by `translate!`, which would reformat it
+        // via Fluent's numeric formatting (e.g. "1.50" -> "1.5"). Hence
+        // `translate_text!` is used instead everywhere `s` is interpolated.
         let mut iter = s.char_indices().peekable();
         let mut options = Self::default();
         let error = |message: String, span: ByteRange<usize>, kind: FormatErrorKind| FormatError {
@@ -260,13 +267,13 @@ impl FromStr for FormatOptions {
             // format, or it is the trailing '%' that never became one.
             return Err(if options.prefix == s {
                 error(
-                    translate!("numfmt-error-format-no-percent", "format" => s),
+                    translate_text!("numfmt-error-format-no-percent", "format" => s),
                     0..s.len(),
                     FormatErrorKind::MissingDirective,
                 )
             } else {
                 error(
-                    translate!("numfmt-error-format-ends-in-percent", "format" => s),
+                    translate_text!("numfmt-error-format-ends-in-percent", "format" => s),
                     s.len().saturating_sub(1)..s.len(),
                     FormatErrorKind::MissingDirective,
                 )
@@ -290,7 +297,7 @@ impl FromStr for FormatOptions {
                 Some((_, c)) if c.is_ascii_digit() => padding.push('-'),
                 _ => {
                     return Err(error(
-                        translate!("numfmt-error-invalid-format-directive", "format" => s),
+                        translate_text!("numfmt-error-invalid-format-directive", "format" => s),
                         at(&mut iter, s),
                         FormatErrorKind::UnexpectedCharacter,
                     ));
@@ -313,7 +320,7 @@ impl FromStr for FormatOptions {
                 options.padding = Some(p);
             } else {
                 return Err(error(
-                    translate!("numfmt-error-invalid-format-width-overflow", "format" => s),
+                    translate_text!("numfmt-error-invalid-format-width-overflow", "format" => s),
                     padding_start..offset(&mut iter, s),
                     FormatErrorKind::NumberOverflow,
                 ));
@@ -325,7 +332,7 @@ impl FromStr for FormatOptions {
 
             if matches!(iter.peek(), Some((_, ' ' | '+' | '-'))) {
                 return Err(error(
-                    translate!("numfmt-error-invalid-precision", "format" => s),
+                    translate_text!("numfmt-error-invalid-precision", "format" => s),
                     at(&mut iter, s),
                     FormatErrorKind::UnexpectedCharacter,
                 ));
@@ -347,7 +354,7 @@ impl FromStr for FormatOptions {
                 options.precision = Some(p);
             } else {
                 return Err(error(
-                    translate!("numfmt-error-invalid-precision", "format" => s),
+                    translate_text!("numfmt-error-invalid-precision", "format" => s),
                     precision_start..offset(&mut iter, s),
                     FormatErrorKind::NumberOverflow,
                 ));
@@ -366,7 +373,7 @@ impl FromStr for FormatOptions {
                 FormatErrorKind::UnexpectedConversion
             };
             return Err(error(
-                translate!("numfmt-error-invalid-format-directive", "format" => s),
+                translate_text!("numfmt-error-invalid-format-directive", "format" => s),
                 at(&mut iter, s),
                 kind,
             ));
@@ -384,7 +391,7 @@ impl FromStr for FormatOptions {
                 iter.next();
             } else {
                 return Err(error(
-                    translate!("numfmt-error-format-too-many-percent", "format" => s),
+                    translate_text!("numfmt-error-format-too-many-percent", "format" => s),
                     i..i + 1,
                     FormatErrorKind::StrayPercent,
                 ));
